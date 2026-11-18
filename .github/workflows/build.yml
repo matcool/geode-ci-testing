@@ -16,9 +16,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Prepare image
-        run: |
-          docker pull $IMAGE
-          docker run -d --name builder -v ./:/src -w /src "$IMAGE" sleep infinity
+        run: docker run -d --name builder -v ./:/src -w /src "$IMAGE" sleep infinity
 
       - name: Configure
         run: docker exec builder cmake --preset win --presets-file /docker/CMakePresets.json
