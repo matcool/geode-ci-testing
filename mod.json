@@ -1,0 +1,14 @@
+{
+	"geode": "6.0.0-alpha.2",
+	"gd": {
+		"win": "2.2091",
+		"android": "2.2091",
+		"mac": "2.2091",
+		"ios": "2.2091"
+	},
+	"id": "mat.geode-ci-testing",
+	"name": "geode-ci-testing",
+	"version": "v1.0.0",
+	"developer": "mat",
+	"description": ""
+}

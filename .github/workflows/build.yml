@@ -1,0 +1,28 @@
+name: Build Geode Mod
+
+on:
+  workflow_dispatch:
+  push:
+
+env:
+  IMAGE: ghcr.io/geode-sdk/geode:windows-6.0.0-alpha.2
+
+jobs:
+  build:
+    name: Build Window
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: docker pull $IMAGE
+
+      - name: Configure and build
+        run: |
+          docker run --rm -v ./:/src -w /src $IMAGE bash -c "cmake --preset win --presets-file /docker/CMakePresets.json && cmake --build --preset win --presets-file /docker/CMakePresets.json --parallel"
+          sudo chown -R $(id -u):$(id -g) build-win/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-win
+          path: build-win/*.geode
