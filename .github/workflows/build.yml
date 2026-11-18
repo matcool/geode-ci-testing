@@ -9,26 +9,24 @@ env:
 
 jobs:
   build:
-    name: Build Window
+    name: Build Windows
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/geode-sdk/geode:windows-6.0.0-alpha.2
 
     steps:
       - uses: actions/checkout@v7
 
-      # - run: docker pull $IMAGE
-
-      # - name: Configure and build
-      #   run: |
-      #     docker run --rm -v ./:/src -w /src $IMAGE bash -c "cmake --preset win --presets-file /docker/CMakePresets.json && cmake --build --preset win --presets-file /docker/CMakePresets.json --parallel"
-      #     sudo chown -R $(id -u):$(id -g) build-win/
+      - name: Prepare image
+        run: |
+          docker pull $IMAGE
+          docker run -d --name builder -v ./:/src -w /src "$IMAGE" sleep infinity
 
       - name: Configure
-        run: cmake --preset win --presets-file /docker/CMakePresets.json
+        run: docker exec builder cmake --preset win --presets-file /docker/CMakePresets.json
 
       - name: Build
-        run: cmake --build --preset win --presets-file /docker/CMakePresets.json --parallel
+        run: |
+          docker exec builder cmake --build --preset win --presets-file /docker/CMakePresets.json --parallel
+          sudo chown -R $(id -u):$(id -g) build-*/
 
       - uses: actions/upload-artifact@v7
         with:
