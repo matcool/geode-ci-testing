@@ -41,7 +41,7 @@ jobs:
         run: docker exec builder bash -c "cd /bindings && git pull"
 
       - name: Configure
-        run: docker exec builder cmake --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json
+        run: docker exec builder cmake --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
 
       - name: Build
         run: docker exec builder cmake --build --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json --parallel
