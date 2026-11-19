@@ -40,6 +40,7 @@ runs:
           build-${{ inputs.preset }}-
 
     - name: Prepare image
+      shell: bash
       run: |
         mkdir -p ~/cache/cpm ~/cache/scc
         cd "${{ inputs.path }}"
@@ -52,9 +53,11 @@ runs:
           sleep infinity
 
     - name: fix bindings
+      shell: bash
       run: docker exec builder bash -c "cd /bindings && git pull"
 
     - name: Configure
+      shell: bash
       run: |
         LTO=${{ inputs.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
         docker exec builder cmake \
@@ -62,12 +65,14 @@ runs:
           $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
     - name: Build
+      shell: bash
       run: |
         docker exec builder cmake --build \
           --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
           --parallel
 
     - name: Fix ownership
+      shell: bash
       if: always()
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
