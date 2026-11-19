@@ -76,9 +76,7 @@ runs:
             mv tmp/$mod_name.dylib tmp/m1.dylib
             unzip -j build-macintel/$mod $mod_name.dylib -d tmp
             mv tmp/$mod_name.dylib tmp/intel.dylib
-            # just using the tools image for llvm lol
-            # docker run --rm -v ./tmp:/w -w /w --user $(id -u):$(id -g) ghcr.io/geode-sdk/tools:macos-4.0.0 \
-            llvm-lipo -create ./m1.dylib ./intel.dylib -output $mod_name.dylib
+            llvm-lipo -create ./tmp/m1.dylib ./tmp/intel.dylib -output ./tmp/$mod_name.dylib
             # replace it with the fat dylib
             zip build-macm1/$mod tmp/$mod_name.dylib
             rm build-macintel/$mod
