@@ -85,13 +85,18 @@ runs:
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
 
+    - name: Compute CPM cache key
+      id: cpm-key
+      shell: bash
+      run: echo "key=cpm-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/mod.json') }}" >> "$GITHUB_OUTPUT"
+
     - name: Restore CPM cache
       id: cpm-cache
       uses: actions/cache/restore@v6
       if: ${{ inputs.use-action-cache == 'true' }}
       with:
         path: ~/cache/cpm
-        key: cpm-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/mod.json') }}
+        key: cpm-${{ steps.cpm-key.outputs.key }}
         restore-keys: |
           cpm-
 
@@ -173,7 +178,7 @@ runs:
       uses: actions/cache/save@v6
       with:
         path: ~/cache/cpm
-        key: cpm-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/mod.json') }}
+        key: cpm-${{ steps.cpm-key.outputs.key }}
 
     - uses: actions/upload-artifact@v7
       if: ${{ inputs.upload == 'true' }}
