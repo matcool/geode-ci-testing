@@ -31,14 +31,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Cache
-      uses: actions/cache@v6
-      with:
-        path: ~/cache
-        key: build-${{ inputs.target }}-${{ github.sha }}
-        restore-keys: |
-          build-${{ inputs.target }}-
-    
     - name: Detect target
       id: platform
       shell: bash
@@ -60,6 +52,15 @@ runs:
         fi
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
         echo "lto=$LTO" >> $GITHUB_OUTPUT
+        echo "name=$TARGET" >> $GITHUB_OUTPUT
+
+    - name: Setup Cache
+      uses: actions/cache@v6
+      with:
+        path: ~/cache
+        key: build-${{ inputs.target }}-${{ github.sha }}
+        restore-keys: |
+          build-${{ inputs.target }}-
 
     - name: Prepare image
       shell: bash
@@ -83,14 +84,14 @@ runs:
       run: |
         LTO="${{ steps.platform.outputs.lto }}"
         docker exec builder cmake \
-          --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
+          --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
           $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
     - name: Build
       shell: bash
       run: |
         docker exec builder cmake --build \
-          --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
+          --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
           --parallel
 
     - name: Fix ownership
@@ -101,11 +102,11 @@ runs:
     - uses: actions/upload-artifact@v7
       if: ${{ inputs.upload }}
       with:
-        name: build-${{ inputs.preset }}
+        name: build-${{ steps.platform.outputs.name }}
         path: |
-          build-${{ inputs.preset }}/*.geode
-          build-${{ inputs.preset }}/*.pdb
-          build-${{ inputs.preset }}/*.sym
-          build-${{ inputs.preset }}/*.dbg
-          build-${{ inputs.preset }}/*.dSYM
+          build-${{ steps.platform.outputs.name }}/*.geode
+          build-${{ steps.platform.outputs.name }}/*.pdb
+          build-${{ steps.platform.outputs.name }}/*.sym
+          build-${{ steps.platform.outputs.name }}/*.dbg
+          build-${{ steps.platform.outputs.name }}/*.dSYM
         if-no-files-found: error
