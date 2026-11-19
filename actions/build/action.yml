@@ -96,7 +96,7 @@ runs:
       if: ${{ inputs.use-action-cache == 'true' }}
       with:
         path: ~/cache/cpm
-        key: cpm-${{ steps.cpm-key.outputs.key }}
+        key: ${{ steps.cpm-key.outputs.key }}
         restore-keys: |
           cpm-
 
@@ -116,6 +116,7 @@ runs:
         cd "${{ inputs.path }}"
         docker run -d \
           --name builder \
+          -e SCCACHE_CACHE_SIZE=1G \
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
@@ -161,6 +162,13 @@ runs:
       if: ${{ !cancelled() }}
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
+    - name: Cache stats
+      if: always()
+      shell: bash
+      run: |
+        du -sh ~/cache/scc ~/cache/cpm
+        docker exec builder sccache -s
+
     - name: Remove container
       shell: bash
       if: ${{ !cancelled() }}
@@ -178,7 +186,7 @@ runs:
       uses: actions/cache/save@v6
       with:
         path: ~/cache/cpm
-        key: cpm-${{ steps.cpm-key.outputs.key }}
+        key: ${{ steps.cpm-key.outputs.key }}
 
     - uses: actions/upload-artifact@v7
       if: ${{ inputs.upload == 'true' }}
