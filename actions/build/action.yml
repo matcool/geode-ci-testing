@@ -104,7 +104,7 @@ runs:
       if: ${{ inputs.sdk != 'nightly' }}
       run: docker exec builder bash -c "cd /bindings && git pull"
 
-    - name: Setup SDK
+    - name: Setup SDK manually
       shell: bash
       if: ${{ inputs.sdk == 'nightly' }}
       run: |

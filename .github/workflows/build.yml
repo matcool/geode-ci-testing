@@ -26,7 +26,6 @@ jobs:
 
       - uses: ./actions/build
         with:
-          sdk: nightly
           target: ${{ matrix.config.target }}
           upload: true
     
@@ -40,6 +39,5 @@ jobs:
       - uses: ./actions/merge
         with:
           upload: true
-          upload-zip: false
           zstd: true
           optimize-pngs: true
