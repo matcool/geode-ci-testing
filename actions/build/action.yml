@@ -41,13 +41,17 @@ runs:
         LTO=""
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
+          BINARIES="$TARGET"
         elif [ "$TARGET" = "win" ]; then
           PLATFORM="windows"
+          BINARIES="windows"
           LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         elif [ "$TARGET" = "ios" ]; then
           PLATFORM="ios"
+          BINARIES="ios"
         elif [ "$TARGET" = "mac" ] || [ "$TARGET" = "macm1" ] || [ "$TARGET" = "macintel" ]; then
           PLATFORM="macos"
+          BINARIES="macos"
         else
           echo "Unknown target $TARGET"
           exit 1
@@ -69,6 +73,7 @@ runs:
         fi
 
         echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
+        echo "binaries=$BINARIES" >> $GITHUB_OUTPUT
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
 
@@ -108,7 +113,7 @@ runs:
         git clone https://github.com/geode-sdk/bindings.git /bindings
         git clone https://github.com/geode-sdk/geode.git --branch nightly --depth 1 /opt/geode
         geode config set sdk-nightly true
-        geode sdk install-binaries -p ${{ steps.platform.outputs.platform }}
+        geode sdk install-binaries -p ${{ steps.platform.outputs.binaries }}
         EOF
 
     - name: Configure
