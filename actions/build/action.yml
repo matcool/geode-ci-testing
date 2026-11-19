@@ -103,7 +103,7 @@ runs:
       shell: bash
       if: ${{ inputs.sdk == 'nightly' }}
       run: |
-        docker exec builder bash -es <<'EOF'
+        docker exec -i builder bash -es <<'EOF'
         curl -Lf https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/CMakePresets.json -o /docker/CMakePresets.json
         git clone https://github.com/geode-sdk/bindings.git /bindings
         git clone https://github.com/geode-sdk/geode.git --branch nightly --depth 1 /opt/geode
