@@ -49,8 +49,8 @@ jobs:
           docker run -d \
             --name builder \
             -v ./:/src -w /src \
-            -b /cpm-cache:/cpm-cache \
-            -b /sccache:/opt/sccache/cache \
+            -v /cpm-cache:/cpm-cache \
+            -v /sccache:/opt/sccache/cache \
             "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" \
             sleep infinity
 
