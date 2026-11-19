@@ -37,6 +37,13 @@ runs:
       with:
         pattern: build-*
         path: artifacts
+    
+    # this is only so we can do llvm-lipo
+    - name: Install LLVM
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y llvm
 
     - name: Merge the files
       shell: bash
@@ -70,8 +77,8 @@ runs:
             unzip -j build-macintel/$mod $mod_name.dylib -d tmp
             mv tmp/$mod_name.dylib tmp/intel.dylib
             # just using the tools image for llvm lol
-            docker run --rm -v ./tmp:/w -w /w --user $(id -u):$(id -g) ghcr.io/geode-sdk/tools:macos-4.0.0 \
-              llvm-lipo -create ./m1.dylib ./intel.dylib -output $mod_name.dylib
+            # docker run --rm -v ./tmp:/w -w /w --user $(id -u):$(id -g) ghcr.io/geode-sdk/tools:macos-4.0.0 \
+            llvm-lipo -create ./m1.dylib ./intel.dylib -output $mod_name.dylib
             # replace it with the fat dylib
             zip build-macm1/$mod tmp/$mod_name.dylib
             rm build-macintel/$mod
