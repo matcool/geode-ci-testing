@@ -40,22 +40,21 @@ runs:
         TARGET="${{ inputs.target }}"
         LTO=""
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
-          IMAGE="android"
+          PLATFORM="android"
         elif [ "$TARGET" = "win" ]; then
-          IMAGE="windows"
+          PLATFORM="windows"
           LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         elif [ "$TARGET" = "ios" ]; then
-          IMAGE="ios"
+          PLATFORM="ios"
         elif [ "$TARGET" = "mac" ] || [ "$TARGET" = "macm1" ] || [ "$TARGET" = "macintel" ]; then
-          IMAGE="macos"
+          PLATFORM="macos"
         else
           echo "Unknown target $TARGET"
           exit 1
         fi
 
         if [ "${{ inputs.sdk }}" == "nightly" ]; then
-          echo "Not supported yet sorry"
-          exit 1
+          echo "image=tools:$PLATFORM-latest" >> $GITHUB_OUTPUT
         elif [ "${{ inputs.sdk }}" == "latest" ]; then
           echo "Not supported yet sorry"
           exit 1
@@ -63,11 +62,13 @@ runs:
           MOD_JSON_PATH=$(find . -name "mod.json" -print | sort -r | head -n 1)
           TARGET_GEODE_VERSION=$(jq -r '.geode' $MOD_JSON_PATH)
           echo "Targetting Geode version $TARGET_GEODE_VERSION from $MOD_JSON_PATH"
+          echo "image=geode:$PLATFORM-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
         else
           TARGET_GEODE_VERSION="${{ inputs.sdk }}"
+          echo "image=geode:$PLATFORM-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
         fi
 
-        echo "image=geode:$IMAGE-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
+        echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
 
@@ -92,9 +93,23 @@ runs:
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
 
+    # temporary while pull-promise is broken
     - name: fix bindings
       shell: bash
+      if: ${{ inputs.sdk != 'nightly' }}
       run: docker exec builder bash -c "cd /bindings && git pull"
+
+    - name: Setup SDK
+      shell: bash
+      if: ${{ inputs.sdk == 'nightly' }}
+      run: |
+        docker exec builder bash -es <<'EOF'
+        curl -Lf https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/CMakePresets.json -o /docker/CMakePresets.json
+        git clone https://github.com/geode-sdk/bindings.git /bindings
+        git clone https://github.com/geode-sdk/geode.git --branch nightly --depth 1 /opt/geode
+        geode config set sdk-nightly true
+        geode sdk install-binaries -p ${{ steps.platform.outputs.platform }}
+        EOF
 
     - name: Configure
       shell: bash
