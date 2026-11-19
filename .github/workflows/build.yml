@@ -38,9 +38,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/cache
-          key: cpm-${{ matrix.config.preset }}-${{ github.sha }}
+          key: build-${{ matrix.config.preset }}-${{ github.sha }}
           restore-keys: |
-            cpm-${{ matrix.config.preset }}-
+            build-${{ matrix.config.preset }}-
 
       - name: Prepare image
         run: |
@@ -59,10 +59,15 @@ jobs:
       - name: Configure
         run: |
           LTO=${{ matrix.config.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
-          docker exec builder cmake --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+          docker exec builder cmake \
+            --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json \
+            $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
       - name: Build
-        run: docker exec builder cmake --build --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json --parallel
+        run: |
+          docker exec builder cmake --build \
+            --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json \
+            --parallel
 
       - name: Fix ownership
         if: always()
@@ -73,3 +78,19 @@ jobs:
           name: build-${{ matrix.config.preset }}
           path: build-${{ matrix.config.preset }}/*.geode
           if-no-files-found: error
+  merge:
+    name: Merge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup CLI
+        uses: geode-sdk/cli/.github/actions/setup@v4.0.1
+      
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: build-*
+      
+      - run: |
+          ls -lah
+          echo ---------
+          ls -lah *
