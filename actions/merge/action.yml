@@ -132,7 +132,7 @@ runs:
           build-win
           build-mac
           build-macm1
-          build-macmintel
+          build-macintel
           build-ios
           build-android32
           build-android64
