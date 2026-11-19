@@ -38,7 +38,7 @@ jobs:
         run: docker run -d --name builder -v ./:/src -w /src "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" sleep infinity
 
       - name: fix bindings
-        run: docker exec builder "cd /bindings && git pull"
+        run: docker exec builder bash -c "cd /bindings && git pull"
 
       - name: Configure
         run: docker exec builder cmake --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json
