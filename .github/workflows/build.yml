@@ -28,7 +28,7 @@ jobs:
         with:
           target: ${{ matrix.config.target }}
           upload: true
-    
+
   merge:
     name: Merge
     runs-on: ubuntu-latest
@@ -39,5 +39,3 @@ jobs:
       - uses: ./actions/merge
         with:
           upload: true
-          zstd: true
-          optimize-pngs: true

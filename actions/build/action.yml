@@ -2,6 +2,10 @@ name: Build Geode mod
 description: Builds a Geode mod
 
 inputs:
+  target:
+    description: One of win, android32, android64, mac, macintel, macm1, ios.
+    required: true
+
   sdk:
     description: Which version of the SDK to use. Set to 'given' to use the version specified in mod.json, 'nightly' for latest commit, 'latest' for latest release
     required: false
@@ -22,13 +26,17 @@ inputs:
     required: false
     default: ./
 
-  target:
-    description: One of win, android32, android64, mac, macintel, macm1, ios.
-    required: true
-
   upload:
     description: Automatically upload built files as geode-build-(platform).zip
     default: false
+
+  use-action-cache:
+    description: Whether to use actions cache for CPM and sccache
+    default: true
+
+  save-action-cache:
+    description: Whether to save actions cache, can be useful to disable on PRs and such.
+    default: true
 
 runs:
   using: composite
@@ -77,13 +85,24 @@ runs:
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
 
-    - name: Setup Cache
-      uses: actions/cache@v6
+    - name: Restore CPM cache
+      id: cpm-cache
+      uses: actions/cache/restore@v6
+      if: ${{ inputs.use-action-cache == 'true' }}
       with:
-        path: ~/cache
-        key: build-${{ inputs.target }}-${{ github.sha }}
+        path: ~/cache/cpm
+        key: cpm-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/mod.json') }}
         restore-keys: |
-          build-${{ inputs.target }}-
+          cpm-
+
+    - name: Restore sccache cache
+      uses: actions/cache/restore@v6
+      if: ${{ inputs.use-action-cache == 'true' }}
+      with:
+        path: ~/cache/scc
+        key: sccache-${{ inputs.target }}-${{ github.sha }}
+        restore-keys: |
+          sccache-${{ inputs.target }}-
 
     - name: Prepare image
       shell: bash
@@ -134,13 +153,27 @@ runs:
     # --user id:ig breaks the geode docker image atm, so do this
     - name: Fix ownership
       shell: bash
-      if: always()
+      if: ${{ !cancelled() }}
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
     - name: Remove container
       shell: bash
-      if: always()
+      if: ${{ !cancelled() }}
       run: docker rm -f builder
+
+    - name: Save sccache
+      if: ${{ !cancelled() && inputs.use-action-cache == 'true' && inputs.save-action-cache == 'true' }}
+      uses: actions/cache/save@v6
+      with:
+        path: ~/cache/scc
+        key: sccache-${{ inputs.target }}-${{ github.sha }}
+
+    - name: Save CPM cache
+      if: ${{ !cancelled() && inputs.use-action-cache == 'true' && inputs.save-action-cache == 'true' && steps.cpm-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v6
+      with:
+        path: ~/cache/cpm
+        key: cpm-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/mod.json') }}
 
     - uses: actions/upload-artifact@v7
       if: ${{ inputs.upload == 'true' }}
