@@ -4,29 +4,49 @@ on:
   workflow_dispatch:
   push:
 
-env:
-  IMAGE: ghcr.io/geode-sdk/geode:windows-6.0.0-alpha.2
-
 jobs:
   build:
-    name: Build Windows
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - image: windows
+          preset: win
+
+        - image: macos
+          preset: mac
+
+        - image: ios
+          preset: ios
+
+        - image: android
+          preset: android32
+
+        - image: android
+          preset: android64
+
+    name: Build ${{ matrix.config.preset }}
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Prepare image
-        run: docker run -d --name builder -v ./:/src -w /src "$IMAGE" sleep infinity
+        run: docker run -d --name builder -v ./:/src -w /src "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" sleep infinity
 
       - name: Configure
-        run: docker exec builder cmake --preset win --presets-file /docker/CMakePresets.json
+        run: docker exec builder cmake --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json
 
       - name: Build
         run: |
-          docker exec builder cmake --build --preset win --presets-file /docker/CMakePresets.json --parallel
+          docker exec builder cmake --build --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json --parallel
           sudo chown -R $(id -u):$(id -g) build-*/
+
+      - name: Fix ownership
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: build-win
-          path: build-win/*.geode
+          name: build-${{ matrix.config.preset }}
+          path: build-${{ matrix.config.preset }}/*.geode
