@@ -11,8 +11,6 @@ class $modify(MyMenuLayer, MenuLayer) {
 
 		log::debug("Hello from my MenuLayer::init hook! This layer has {} children.", this->getChildrenCount());
 
-		hello error error error
-
 		auto myButton = CCMenuItemSpriteExtra::create(
 			CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
 			this,
