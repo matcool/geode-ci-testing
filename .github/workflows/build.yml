@@ -45,6 +45,7 @@ jobs:
     needs: ['build']
 
     steps:
+      - uses: actions/checkout@v7
       - uses: ./actions/merge
         with:
           upload: true
