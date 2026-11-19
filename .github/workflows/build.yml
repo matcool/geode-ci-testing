@@ -34,64 +34,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Cache
-        uses: actions/cache@v6
+      - uses: ./actions/build
         with:
-          path: ~/cache
-          key: build-${{ matrix.config.preset }}-${{ github.sha }}
-          restore-keys: |
-            build-${{ matrix.config.preset }}-
-
-      - name: Prepare image
-        run: |
-          mkdir -p ~/cache/cpm ~/cache/scc
-          docker run -d \
-            --name builder \
-            -v ./:/src -w /src \
-            -v ~/cache/cpm:/cpm-cache \
-            -v ~/cache/scc:/opt/sccache/cache \
-            "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" \
-            sleep infinity
-
-      - name: fix bindings
-        run: docker exec builder bash -c "cd /bindings && git pull"
-
-      - name: Configure
-        run: |
-          LTO=${{ matrix.config.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
-          docker exec builder cmake \
-            --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json \
-            $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
-
-      - name: Build
-        run: |
-          docker exec builder cmake --build \
-            --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json \
-            --parallel
-
-      - name: Fix ownership
-        if: always()
-        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE" ~/cache
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: build-${{ matrix.config.preset }}
-          path: build-${{ matrix.config.preset }}/*.geode
-          if-no-files-found: error
+          image: ${{ matrix.config.image }}
+          preset: ${{ matrix.config.preset }}
+    
   merge:
     name: Merge
     runs-on: ubuntu-latest
     needs: ['build']
 
     steps:
-      - name: Setup CLI
-        uses: geode-sdk/cli/.github/actions/setup@v4.0.1
-      
-      - uses: actions/download-artifact@v8
+      - uses: ./actions/merge
         with:
-          pattern: build-*
-      
-      - run: |
-          ls -lah
-          echo ---------
-          ls -lah *
+          upload: true
+          zstd: true
+          optimize-pngs: true

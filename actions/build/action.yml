@@ -1,0 +1,83 @@
+name: Build Geode mod
+description: Builds a Geode mod
+
+inputs:
+  # sdk:
+  #   description: Which version of the SDK to use, defaults to latest release. Set to 'given' to use the version specified in mod.json, 'nightly' for latest commit, 'latest' for latest release
+  #   required: false
+  #   default: given
+
+  configure-args:
+    description: Extra arguments passed to CMake when configuring.
+    required: false
+    default: ""
+
+  build-args:
+    description: Extra arguments passed to CMake when building.
+    required: false
+    default: ""
+
+  path:
+    description: Path to the project which to build. Defaults to current directory.
+    required: false
+    default: ./
+
+  image:
+    required: true
+
+  preset:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Cache
+      uses: actions/cache@v6
+      with:
+        path: ~/cache
+        key: build-${{ inputs.preset }}-${{ github.sha }}
+        restore-keys: |
+          build-${{ inputs.preset }}-
+
+    - name: Prepare image
+      run: |
+        mkdir -p ~/cache/cpm ~/cache/scc
+        cd "${{ inputs.path }}"
+        docker run -d \
+          --name builder \
+          -v ./:/src -w /src \
+          -v ~/cache/cpm:/cpm-cache \
+          -v ~/cache/scc:/opt/sccache/cache \
+          "ghcr.io/geode-sdk/geode:${{ inputs.image }}-6.0.0-alpha.2" \
+          sleep infinity
+
+    - name: fix bindings
+      run: docker exec builder bash -c "cd /bindings && git pull"
+
+    - name: Configure
+      run: |
+        LTO=${{ inputs.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
+        docker exec builder cmake \
+          --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
+          $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+
+    - name: Build
+      run: |
+        docker exec builder cmake --build \
+          --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
+          --parallel
+
+    - name: Fix ownership
+      if: always()
+      run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: build-${{ inputs.preset }}
+        path: |
+          build-${{ inputs.preset }}/*.geode
+          build-${{ inputs.preset }}/*.pdb
+          build-${{ inputs.preset }}/*.sym
+          build-${{ inputs.preset }}/*.dbg
+          build-${{ inputs.preset }}/*.dSYM
+        if-no-files-found: error
