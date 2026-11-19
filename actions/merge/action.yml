@@ -61,6 +61,24 @@ runs:
           echo "Merging $mod"
           PACKAGE_ARGS=""
 
+          mkdir -p tmp
+          if [ -f "./build-macm1/$mod" ] && [ -f "./build-macintel/$mod" ]; then
+            mkdir -p build-mac
+            mod_name=${mod/%.geode}
+            unzip -j build-macm1/$mod $mod_name.dylib -d tmp
+            mv tmp/$mod_name.dylib tmp/m1.dylib
+            unzip -j build-macintel/$mod $mod_name.dylib -d tmp
+            mv tmp/$mod_name.dylib tmp/intel.dylib
+            # just using the tools image for llvm lol
+            docker run --rm -v ./tmp:/w -w /w --user $(id -u):$(id -g) ghcr.io/geode-sdk/tools:macos-4.0.0 \
+              llvm-lipo -create ./m1.dylib ./intel.dylib -output $mod_name.dylib
+            # replace it with the fat dylib
+            zip build-macm1/$mod tmp/$mod_name.dylib
+            rm build-macintel/$mod
+            mv build-macm1/$mod build-mac/
+          fi
+          rm -rf ./tmp
+
           for dir in build-*; do
             if [ -f "./$dir/$mod" ]; then
               PACKAGE_ARGS="$PACKAGE_ARGS ./$dir/$mod"
