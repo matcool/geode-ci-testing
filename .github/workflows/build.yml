@@ -67,7 +67,7 @@ jobs:
 
       - name: Fix ownership
         if: always()
-        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE" /cpm-cache /sccache
 
       - uses: actions/upload-artifact@v7
         with:
