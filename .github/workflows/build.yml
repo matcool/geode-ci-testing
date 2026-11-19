@@ -34,8 +34,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Setup Cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            /cpm-cache
+            /sccache
+          key: cpm-${{ matrix.config.preset }}-${{ github.sha }}
+          restore-keys: |
+            cpm-${{ matrix.config.preset }}-
+
       - name: Prepare image
-        run: docker run -d --name builder -v ./:/src -w /src "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" sleep infinity
+        run: |
+          docker run -d \
+            --name builder \
+            -v ./:/src -w /src \
+            -b /cpm-cache:/cpm-cache \
+            -b /sccache:/opt/sccache/cache \
+            "ghcr.io/geode-sdk/geode:${{ matrix.config.image }}-6.0.0-alpha.2" \
+            sleep infinity
 
       - name: fix bindings
         run: docker exec builder bash -c "cd /bindings && git pull"
@@ -43,10 +60,10 @@ jobs:
       - name: Configure
         run: |
           LTO=${{ matrix.config.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
-          docker exec builder cmake --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json $LTO
+          docker exec builder cmake --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json $LTO
 
       - name: Build
-        run: docker exec builder cmake --build --preset ${{ matrix.config.preset }} --presets-file /docker/CMakePresets.json --parallel
+        run: docker exec builder cmake --build --preset ${{ matrix.config.preset }}-cache --presets-file /docker/CMakePresets.json --parallel
 
       - name: Fix ownership
         if: always()
@@ -56,3 +73,4 @@ jobs:
         with:
           name: build-${{ matrix.config.preset }}
           path: build-${{ matrix.config.preset }}/*.geode
+          if-no-files-found: error
