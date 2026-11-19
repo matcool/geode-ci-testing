@@ -38,7 +38,7 @@ runs:
 
     - uses: actions/download-artifact@v8
       with:
-        pattern: build-*
+        pattern: geode-build-*
         path: artifacts
     
     # this is only so we can do llvm-lipo
@@ -72,22 +72,23 @@ runs:
           PACKAGE_ARGS=""
 
           mkdir -p tmp
-          if [ -f "./build-macm1/$mod" ] && [ -f "./build-macintel/$mod" ]; then
-            mkdir -p build-mac
+          # combine macos dylibs
+          if [ -f "./geode-build-macm1/$mod" ] && [ -f "./geode-build-macintel/$mod" ]; then
+            mkdir -p geode-build-mac
             mod_name=${mod/%.geode}
-            unzip -j build-macm1/$mod $mod_name.dylib -d tmp
+            unzip -j geode-build-macm1/$mod $mod_name.dylib -d tmp
             mv tmp/$mod_name.dylib tmp/m1.dylib
-            unzip -j build-macintel/$mod $mod_name.dylib -d tmp
+            unzip -j geode-build-macintel/$mod $mod_name.dylib -d tmp
             mv tmp/$mod_name.dylib tmp/intel.dylib
             llvm-lipo -create ./tmp/m1.dylib ./tmp/intel.dylib -output ./tmp/$mod_name.dylib
             # replace it with the fat dylib
-            zip build-macm1/$mod tmp/$mod_name.dylib
-            rm build-macintel/$mod
-            mv build-macm1/$mod build-mac/
+            zip geode-build-macm1/$mod tmp/$mod_name.dylib
+            rm geode-build-macintel/$mod
+            mv geode-build-macm1/$mod geode-build-mac/
           fi
           rm -rf ./tmp
 
-          for dir in build-*; do
+          for dir in geode-build-*; do
             if [ -f "./$dir/$mod" ]; then
               PACKAGE_ARGS="$PACKAGE_ARGS ./$dir/$mod"
             fi
@@ -129,11 +130,11 @@ runs:
     - uses: geekyeggo/delete-artifact@v6
       with:
         name: |
-          build-win
-          build-mac
-          build-macm1
-          build-macintel
-          build-ios
-          build-android32
-          build-android64
+          geode-build-win
+          geode-build-mac
+          geode-build-macm1
+          geode-build-macintel
+          geode-build-ios
+          geode-build-android32
+          geode-build-android64
         failOnError: false

@@ -2,10 +2,10 @@ name: Build Geode mod
 description: Builds a Geode mod
 
 inputs:
-  # sdk:
-  #   description: Which version of the SDK to use, defaults to latest release. Set to 'given' to use the version specified in mod.json, 'nightly' for latest commit, 'latest' for latest release
-  #   required: false
-  #   default: given
+  sdk:
+    description: Which version of the SDK to use. Set to 'given' to use the version specified in mod.json, 'nightly' for latest commit, 'latest' for latest release
+    required: false
+    default: given
 
   configure-args:
     description: Extra arguments passed to CMake when configuring.
@@ -23,9 +23,11 @@ inputs:
     default: ./
 
   target:
+    description: One of win, android32, android64, mac, macintel, macm1, ios.
     required: true
 
   upload:
+    description: Automatically upload built files as geode-build-(platform).zip
     default: false
 
 runs:
@@ -50,7 +52,22 @@ runs:
           echo "Unknown target $TARGET"
           exit 1
         fi
-        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+        if [ "${{ inputs.sdk }}" == "nightly" ]; then
+          echo "Not supported yet sorry"
+          exit 1
+        elif [ "${{ inputs.sdk }}" == "latest" ]; then
+          echo "Not supported yet sorry"
+          exit 1
+        elif [ "${{ inputs.sdk }}" == "given" ]; then
+          MOD_JSON_PATH=$(find . -name "mod.json" -print | sort -r | head -n 1)
+          TARGET_GEODE_VERSION=$(jq -r '.geode' $MOD_JSON_PATH)
+          echo "Targetting Geode version $TARGET_GEODE_VERSION from $MOD_JSON_PATH"
+        else
+          TARGET_GEODE_VERSION="${{ inputs.sdk }}"
+        fi
+
+        echo "image=geode:$IMAGE-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
 
@@ -72,7 +89,7 @@ runs:
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
-          "ghcr.io/geode-sdk/geode:${{ steps.platform.outputs.image }}-6.0.0-alpha.2" \
+          "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
 
     - name: fix bindings
@@ -85,15 +102,16 @@ runs:
         LTO="${{ steps.platform.outputs.lto }}"
         docker exec builder cmake \
           --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
-          $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+          $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }}
 
     - name: Build
       shell: bash
       run: |
         docker exec builder cmake --build \
           --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
-          --parallel
+          --parallel ${{ inputs.build-args }}
 
+    # --user id:ig breaks the geode docker image atm, so do this
     - name: Fix ownership
       shell: bash
       if: always()
@@ -102,11 +120,11 @@ runs:
     - uses: actions/upload-artifact@v7
       if: ${{ inputs.upload }}
       with:
-        name: build-${{ steps.platform.outputs.name }}
+        name: geode-build-${{ steps.platform.outputs.name }}
         path: |
-          build-${{ steps.platform.outputs.name }}/*.geode
-          build-${{ steps.platform.outputs.name }}/*.pdb
-          build-${{ steps.platform.outputs.name }}/*.sym
-          build-${{ steps.platform.outputs.name }}/*.dbg
-          build-${{ steps.platform.outputs.name }}/*.dSYM
+          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.geode
+          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.pdb
+          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.sym
+          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.dbg
+          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.dSYM
         if-no-files-found: error
