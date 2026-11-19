@@ -21,6 +21,9 @@ inputs:
   upload:
     description: Upload the artifact
     default: false
+  upload-zip:
+    description: Forces the uploaded artifact to be a zip even if theres only one .geode file.
+    default: true
 
 outputs:
   build-output:
@@ -121,14 +124,16 @@ runs:
       with:
         name: Build Output
         path: ${{ steps.merge.outputs.output }}
-        archive: ${{ steps.merge.outputs.archive }}
+        archive: ${{ inputs.upload-zip || steps.merge.outputs.archive }}
 
-    # - uses: geekyeggo/delete-artifact@v6
-    #   with:
-    #     name: |
-    #       build-win
-    #       build-mac
-    #       build-ios
-    #       build-android32
-    #       build-android64
-    #     failOnError: false
+    - uses: geekyeggo/delete-artifact@v6
+      with:
+        name: |
+          build-win
+          build-mac
+          build-macm1
+          build-macmintel
+          build-ios
+          build-android32
+          build-android64
+        failOnError: false

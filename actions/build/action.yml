@@ -22,11 +22,11 @@ inputs:
     required: false
     default: ./
 
-  image:
+  target:
     required: true
 
-  preset:
-    required: true
+  upload:
+    default: false
 
 runs:
   using: composite
@@ -35,9 +35,31 @@ runs:
       uses: actions/cache@v6
       with:
         path: ~/cache
-        key: build-${{ inputs.preset }}-${{ github.sha }}
+        key: build-${{ inputs.target }}-${{ github.sha }}
         restore-keys: |
-          build-${{ inputs.preset }}-
+          build-${{ inputs.target }}-
+    
+    - name: Detect target
+      id: platform
+      shell: bash
+      run: |
+        TARGET="${{ inputs.target }}"
+        LTO=""
+        if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
+          IMAGE="android"
+        elif [ "$TARGET" = "win" ]; then
+          IMAGE="windows"
+          LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
+        elif [ "$TARGET" = "ios" ]; then
+          IMAGE="ios"
+        elif [ "$TARGET" = "mac" ] || [ "$TARGET" = "macm1" ] || [ "$TARGET" = "macintel" ]; then
+          IMAGE="macos"
+        else
+          echo "Unknown target $TARGET"
+          exit 1
+        fi
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        echo "lto=$LTO" >> $GITHUB_OUTPUT
 
     - name: Prepare image
       shell: bash
@@ -49,7 +71,7 @@ runs:
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
-          "ghcr.io/geode-sdk/geode:${{ inputs.image }}-6.0.0-alpha.2" \
+          "ghcr.io/geode-sdk/geode:${{ steps.platform.outputs.image }}-6.0.0-alpha.2" \
           sleep infinity
 
     - name: fix bindings
@@ -59,7 +81,7 @@ runs:
     - name: Configure
       shell: bash
       run: |
-        LTO=${{ inputs.preset == 'win' && '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON' || '' }}
+        LTO="${{ steps.platform.outputs.lto }}"
         docker exec builder cmake \
           --preset ${{ inputs.preset }}-cache --presets-file /docker/CMakePresets.json \
           $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
@@ -77,6 +99,7 @@ runs:
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
     - uses: actions/upload-artifact@v7
+      if: ${{ inputs.upload }}
       with:
         name: build-${{ inputs.preset }}
         path: |

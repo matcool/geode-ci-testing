@@ -10,25 +10,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - image: windows
-          preset: win
+        - target: win
+        - target: macm1
+        - target: macintel
+        - target: ios
+        - target: android32
+        - target: android64
 
-        - image: macos
-          preset: macm1
-
-        - image: macos
-          preset: macintel
-
-        - image: ios
-          preset: ios
-
-        - image: android
-          preset: android32
-
-        - image: android
-          preset: android64
-
-    name: Build ${{ matrix.config.preset }}
+    name: Build ${{ matrix.config.target }}
     runs-on: ubuntu-latest
 
     steps:
@@ -36,8 +25,8 @@ jobs:
 
       - uses: ./actions/build
         with:
-          image: ${{ matrix.config.image }}
-          preset: ${{ matrix.config.preset }}
+          target: ${{ matrix.config.target }}
+          upload: true
     
   merge:
     name: Merge
@@ -45,9 +34,10 @@ jobs:
     needs: ['build']
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7 # ignore this one
       - uses: ./actions/merge
         with:
           upload: true
+          upload-zip: false
           zstd: true
           optimize-pngs: true
