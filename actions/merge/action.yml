@@ -104,10 +104,10 @@ runs:
         find . -type f -name '*.dbg' -exec cp {} out/ \;
         find . -type d -name '*.dSYM' -exec cp -R {} out/ \;
         echo "output=$(realpath out)" >> $GITHUB_OUTPUT
-        if [ $(ls -1 | wc -l) = 1 ]; then
+        if [ $(ls -1 out | wc -l) = 1 ]; then
           echo "archive=false" >> $GITHUB_OUTPUT
         else
-          echo "archive=" >> $GITHUB_OUTPUT
+          echo "archive=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload merged
