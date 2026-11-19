@@ -40,7 +40,7 @@ runs:
       with:
         pattern: geode-build-*
         path: artifacts
-    
+
     # this is only so we can do llvm-lipo
     - name: Install LLVM
       shell: bash
@@ -82,7 +82,7 @@ runs:
             mv tmp/$mod_name.dylib tmp/intel.dylib
             llvm-lipo -create ./tmp/m1.dylib ./tmp/intel.dylib -output ./tmp/$mod_name.dylib
             # replace it with the fat dylib
-            zip geode-build-macm1/$mod tmp/$mod_name.dylib
+            zip -j geode-build-macm1/$mod tmp/$mod_name.dylib
             rm geode-build-macintel/$mod
             mv geode-build-macm1/$mod geode-build-mac/
           fi
@@ -121,14 +121,14 @@ runs:
 
     - name: Upload merged
       uses: actions/upload-artifact@v7
-      if: ${{ inputs.upload }}
+      if: ${{ inputs.upload == 'true' }}
       with:
         name: Build Output
         path: ${{ steps.merge.outputs.output }}
-        archive: ${{ inputs.upload-zip || steps.merge.outputs.archive }}
+        archive: ${{ inputs.upload-zip == 'true' || steps.merge.outputs.archive == 'true' }}
 
     - uses: geekyeggo/delete-artifact@v6
-      if: ${{ inputs.delete-artifacts }}
+      if: ${{ inputs.delete-artifacts == 'true' }}
       with:
         name: |
           geode-build-win

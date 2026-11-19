@@ -63,7 +63,7 @@ runs:
           echo "Not supported yet sorry"
           exit 1
         elif [ "${{ inputs.sdk }}" == "given" ]; then
-          MOD_JSON_PATH=$(find . -name "mod.json" -print | sort -r | head -n 1)
+          MOD_JSON_PATH=$(find ${{ inputs.path }} -name "mod.json" -print | sort -r | head -n 1)
           TARGET_GEODE_VERSION=$(jq -r '.geode' $MOD_JSON_PATH)
           echo "Targetting Geode version $TARGET_GEODE_VERSION from $MOD_JSON_PATH"
           echo "image=geode:$PLATFORM-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
@@ -137,8 +137,13 @@ runs:
       if: always()
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
+    - name: Remove container
+      shell: bash
+      if: always()
+      run: docker rm -f builder
+
     - uses: actions/upload-artifact@v7
-      if: ${{ inputs.upload }}
+      if: ${{ inputs.upload == 'true' }}
       with:
         name: geode-build-${{ steps.platform.outputs.name }}
         path: |
