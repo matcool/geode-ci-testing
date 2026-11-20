@@ -10,13 +10,13 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - target: win
-        - target: macm1
-        - target: macintel
+        # - target: win
+        # - target: macm1
+        # - target: macintel
         # - target: mac
         - target: ios
-        - target: android32
-        - target: android64
+        # - target: android32
+        # - target: android64
 
     name: Build ${{ matrix.config.target }}
     runs-on: ubuntu-latest

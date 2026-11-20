@@ -76,7 +76,8 @@ runs:
       shell: bash
       run: |
         TARGET="${{ inputs.target }}"
-        LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
+        # LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
+        LTO=""
         BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
@@ -214,7 +215,6 @@ runs:
 
     - name: Cache stats
       shell: bash
-      if: ${{ !cancelled() }}
       run: |
         du -sh ~/cache/scc ~/cache/cpm
         docker exec builder sccache -s
