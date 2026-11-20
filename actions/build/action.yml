@@ -76,8 +76,8 @@ runs:
       shell: bash
       run: |
         TARGET="${{ inputs.target }}"
-        # LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         LTO=""
+        LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
