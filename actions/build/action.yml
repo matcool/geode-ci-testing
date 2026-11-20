@@ -38,6 +38,31 @@ inputs:
     description: Whether to save actions cache, can be useful to disable on PRs and such.
     default: true
 
+  # use-lto:
+  #   description: Whether to use LTO (Link Time Optimization) via the CMAKE_INTERPROCEDURAL_OPTIMIZATION flag, improving build size. Defaults to true
+  #   required: false
+  #   default: true
+
+  export-debug:
+    description: Whether to export debug files for builds (.pdb for Windows, .dbg for Android, .dSYM for MacOS). Defaults to false
+    required: false
+    default: false
+
+  export-symbols:
+    description: Whether to export Breakpad symbols for Android builds. Defaults to false
+    required: false
+    default: false
+
+  export-pdb:
+    description: Whether to export PDB files for Windows builds. Defaults to false
+    required: false
+    default: false
+
+  bundle-pdb:
+    description: Whether to bundle PDB files into the .geode package. Requires SDK v4.2.0 and CLI v3.3.0 at minimum. Defaults to false
+    required: false
+    default: false
+
 runs:
   using: composite
   steps:
@@ -145,9 +170,14 @@ runs:
       shell: bash
       run: |
         LTO="${{ steps.platform.outputs.lto }}"
+        BUNDLE_PDB=""
+        if [ "${{ inputs.bundle-pdb }}" = "true" ] && [ ${{ inputs.target }} = "win" ]; then
+          BUNDLE_PDB="-DGEODE_BUNDLE_PDB=ON"
+        fi
+
         docker exec builder cmake \
           --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
-          $LTO -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }}
+          $LTO $BUNDLE_PDB -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }}
 
     - name: Build
       shell: bash
@@ -163,11 +193,58 @@ runs:
       run: sudo chown -R "$(id -u):$(id -g)" "${{ inputs.path }}" ~/cache
 
     - name: Cache stats
-      if: always()
       shell: bash
+      if: ${{ !cancelled() }}
       run: |
         du -sh ~/cache/scc ~/cache/cpm
         docker exec builder sccache -s
+
+    - name: Install dump_syms
+      if: inputs.export-symbols == 'true' && steps.platform.outputs.platform == 'android'
+      shell: bash
+      run: |
+        mkdir -p /tmp/dump_syms
+        cd /tmp/dump_syms
+        curl -L https://github.com/mozilla/dump_syms/releases/latest/download/dump_syms-x86_64-unknown-linux-gnu.tar.xz -o dump_syms.tar.xz
+        xz -d dump_syms.tar.xz
+        tar -xf dump_syms.tar
+        echo "/tmp/dump_syms/dump_syms-x86_64-unknown-linux-gnu" >> $GITHUB_PATH
+
+    - name: Move built files
+      shell: bash
+      run: |
+        mkdir -p /tmp/output
+
+        cd ${{ inputs.path }}
+
+        for file in $(find ./build-* -name *.geode); do
+          cp $file /tmp/output/
+          if [ "${{ inputs.export-symbols }}" = "true" ] && [ ${{ steps.platform.outputs.platform }} = "android" ]; then
+            SO_FILE=( $(dirname $file)/$(basename $file .geode).*.so )
+            SO_FILE_NAME=$(basename $SO_FILE)
+            if [ -f "$SO_FILE" ]; then
+              dump_syms "$SO_FILE" -o "/tmp/output/$SO_FILE_NAME.sym"
+            fi
+          fi
+        done
+
+        if [ ${{ inputs.target }} = "win" ] && [ "${{ inputs.export-pdb }}" = "true" ]; then
+          for file in $(find ./build-* -name *.pdb); do
+            cp $file /tmp/output
+          done
+        fi
+
+        if [ "${{ inputs.export-debug }}" = "true" ]; then
+          for file in $(find ./build-* -name *.pdb); do
+            cp $file /tmp/output
+          done
+          for file in $(find ./build-* -name *.dbg); do
+            cp $file /tmp/output
+          done
+          for dir in $(find ./build-* -name *.dSYM); do
+            cp -R $dir /tmp/output
+          done
+        fi
 
     - name: Remove container
       shell: bash
@@ -193,9 +270,9 @@ runs:
       with:
         name: geode-build-${{ steps.platform.outputs.name }}
         path: |
-          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.geode
-          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.pdb
-          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.sym
-          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.dbg
-          ${{ inputs.path }}/build-${{ steps.platform.outputs.name }}/*.dSYM
+          /tmp/output/*.geode
+          /tmp/output/*.pdb
+          /tmp/output/*.sym
+          /tmp/output/*.dbg
+          /tmp/output/*.dSYM
         if-no-files-found: error
