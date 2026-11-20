@@ -27,6 +27,7 @@ jobs:
       - uses: ./actions/build
         with:
           target: ${{ matrix.config.target }}
+          build-config: RelWithDebInfo
           upload: true
           export-debug: true
           bundle-pdb: true

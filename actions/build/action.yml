@@ -21,6 +21,11 @@ inputs:
     required: false
     default: ""
 
+  build-config:
+    description: Which build configuration to use, can only be Release or RelWithDebInfo. Defaults to Release
+    required: false
+    default: Release
+
   path:
     description: Path to the project which to build. Defaults to current directory.
     required: false
@@ -91,6 +96,11 @@ runs:
           exit 1
         fi
 
+        PRESET="$TARGET"
+        if [ "${{ inputs.build-config }}" = "RelWithDebInfo" ]; then
+          PRESET="$PRESET-debug"
+        fi
+
         if [ "${{ inputs.sdk }}" == "nightly" ]; then
           echo "image=tools:$PLATFORM-latest" >> $GITHUB_OUTPUT
         elif [ "${{ inputs.sdk }}" == "latest" ]; then
@@ -111,6 +121,7 @@ runs:
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
         echo "build_folder=$BUILD" >> $GITHUB_OUTPUT
+        echo "preset=$PRESET" >> $GITHUB_OUTPUT
 
     - name: Compute CPM cache key
       id: cpm-key
@@ -180,8 +191,9 @@ runs:
         fi
 
         docker exec builder cmake \
-          --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
-          $LTO $BUNDLE_PDB -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }}
+          --preset ${{ steps.platform.outputs.preset }} --presets-file /docker/CMakePresets.json \
+          $LTO $BUNDLE_PDB -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }} \
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
     - name: Build
       shell: bash
@@ -189,7 +201,7 @@ runs:
         set -x
 
         docker exec builder cmake --build \
-          --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
+          --preset ${{ steps.platform.outputs.preset }} --presets-file /docker/CMakePresets.json \
           --parallel ${{ inputs.build-args }}
 
     # --user id:ig breaks the geode docker image atm, so do this
