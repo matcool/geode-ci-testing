@@ -76,7 +76,7 @@ runs:
       shell: bash
       run: |
         TARGET="${{ inputs.target }}"
-        LTO=""
+        LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
@@ -84,7 +84,6 @@ runs:
         elif [ "$TARGET" = "win" ]; then
           PLATFORM="windows"
           BINARIES="windows"
-          LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         elif [ "$TARGET" = "ios" ]; then
           PLATFORM="ios"
           BINARIES="ios"
@@ -160,6 +159,9 @@ runs:
           -v ~/cache/scc:/opt/sccache/cache \
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
+        # hack
+        docker exec builder curl -L https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/ios.toolchain.cmake -o /docker/ios.toolchain.cmake
+        docker exec builder curl -L https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/macos.toolchain.cmake -o /docker/macos.toolchain.cmake
 
     # temporary while pull-promise is broken
     - name: fix bindings
@@ -231,6 +233,8 @@ runs:
     - name: Move built files
       shell: bash
       run: |
+        set -x
+
         rm -rf /tmp/output/
         mkdir -p /tmp/output
 

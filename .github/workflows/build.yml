@@ -27,11 +27,11 @@ jobs:
       - uses: ./actions/build
         with:
           target: ${{ matrix.config.target }}
-          build-config: RelWithDebInfo
+          # build-config: RelWithDebInfo
           upload: true
-          export-debug: true
-          bundle-pdb: true
-          export-symbols: true
+          # export-debug: true
+          # bundle-pdb: true
+          # export-symbols: true
 
   merge:
     name: Merge
