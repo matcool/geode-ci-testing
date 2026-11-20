@@ -160,8 +160,8 @@ runs:
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
         # hack
-        docker exec builder curl -L https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/ios.toolchain.cmake -o /docker/ios.toolchain.cmake
-        docker exec builder curl -L https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/macos.toolchain.cmake -o /docker/macos.toolchain.cmake
+        docker exec builder curl -L https://prefire.prevter.me/f/1d0f57727aa94e829156f770d0afa632/download -o /docker/ios.toolchain.cmake
+        docker exec builder curl -L https://prefire.prevter.me/f/4faf264a21a648c6a0fecb375b2aa01d/download -o /docker/macos.toolchain.cmake
 
     # temporary while pull-promise is broken
     - name: fix bindings
