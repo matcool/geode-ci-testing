@@ -72,6 +72,7 @@ runs:
       run: |
         TARGET="${{ inputs.target }}"
         LTO=""
+        BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
           BINARIES="$TARGET"
@@ -109,6 +110,7 @@ runs:
         echo "binaries=$BINARIES" >> $GITHUB_OUTPUT
         echo "lto=$LTO" >> $GITHUB_OUTPUT
         echo "name=$TARGET" >> $GITHUB_OUTPUT
+        echo "build_folder=$BUILD" >> $GITHUB_OUTPUT
 
     - name: Compute CPM cache key
       id: cpm-key
@@ -217,11 +219,14 @@ runs:
     - name: Move built files
       shell: bash
       run: |
+        rm -rf /tmp/output/
         mkdir -p /tmp/output
 
         cd ${{ inputs.path }}
 
-        for file in $(find ./build-* -name *.geode); do
+        BUILD="./${{ steps.platform.outputs.build_folder }}"
+
+        for file in $(find $BUILD -name *.geode); do
           cp $file /tmp/output/
           if [ "${{ inputs.export-symbols }}" = "true" ] && [ "${{ steps.platform.outputs.platform }}" = "android" ]; then
             SO_FILE=( $(dirname $file)/$(basename $file .geode).*.so )
@@ -233,19 +238,19 @@ runs:
         done
 
         if [ "${{ inputs.target }}" = "win" ] && [ "${{ inputs.export-pdb }}" = "true" ]; then
-          for file in $(find ./build-* -name *.pdb); do
+          for file in $(find $BUILD -name *.pdb); do
             cp $file /tmp/output
           done
         fi
 
         if [ "${{ inputs.export-debug }}" = "true" ]; then
-          for file in $(find ./build-* -name *.pdb); do
+          for file in $(find $BUILD -name *.pdb); do
             cp $file /tmp/output
           done
-          for file in $(find ./build-* -name *.dbg); do
+          for file in $(find $BUILD -name *.dbg); do
             cp $file /tmp/output
           done
-          for dir in $(find ./build-* -name *.dSYM); do
+          for dir in $(find $BUILD -name *.dSYM); do
             cp -R $dir /tmp/output
           done
         fi
