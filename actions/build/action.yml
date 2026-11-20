@@ -169,9 +169,10 @@ runs:
     - name: Configure
       shell: bash
       run: |
+        set -x
         LTO="${{ steps.platform.outputs.lto }}"
         BUNDLE_PDB=""
-        if [ "${{ inputs.bundle-pdb }}" = "true" ] && [ ${{ inputs.target }} = "win" ]; then
+        if [ "${{ inputs.bundle-pdb }}" = "true" ] && [ "${{ inputs.target }}" = "win" ]; then
           BUNDLE_PDB="-DGEODE_BUNDLE_PDB=ON"
         fi
 
@@ -219,7 +220,7 @@ runs:
 
         for file in $(find ./build-* -name *.geode); do
           cp $file /tmp/output/
-          if [ "${{ inputs.export-symbols }}" = "true" ] && [ ${{ steps.platform.outputs.platform }} = "android" ]; then
+          if [ "${{ inputs.export-symbols }}" = "true" ] && [ "${{ steps.platform.outputs.platform }}" = "android" ]; then
             SO_FILE=( $(dirname $file)/$(basename $file .geode).*.so )
             SO_FILE_NAME=$(basename $SO_FILE)
             if [ -f "$SO_FILE" ]; then
@@ -228,7 +229,7 @@ runs:
           fi
         done
 
-        if [ ${{ inputs.target }} = "win" ] && [ "${{ inputs.export-pdb }}" = "true" ]; then
+        if [ "${{ inputs.target }}" = "win" ] && [ "${{ inputs.export-pdb }}" = "true" ]; then
           for file in $(find ./build-* -name *.pdb); do
             cp $file /tmp/output
           done
