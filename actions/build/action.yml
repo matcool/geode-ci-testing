@@ -170,6 +170,7 @@ runs:
       shell: bash
       run: |
         set -x
+
         LTO="${{ steps.platform.outputs.lto }}"
         BUNDLE_PDB=""
         if [ "${{ inputs.bundle-pdb }}" = "true" ] && [ "${{ inputs.target }}" = "win" ]; then
@@ -183,6 +184,8 @@ runs:
     - name: Build
       shell: bash
       run: |
+        set -x
+
         docker exec builder cmake --build \
           --preset ${{ inputs.target }}-cache --presets-file /docker/CMakePresets.json \
           --parallel ${{ inputs.build-args }}

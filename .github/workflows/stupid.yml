@@ -1,0 +1,46 @@
+name: Stupid build
+
+on:
+  push:
+
+jobs:
+  build:
+    name: Build everyone
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./actions/build
+        with:
+          target: win
+          upload: true
+
+      - uses: ./actions/build
+        with:
+          target: android32
+          upload: true
+
+      - uses: ./actions/build
+        with:
+          target: android64
+          upload: true
+
+      - uses: ./actions/build
+        with:
+          target: ios
+          upload: true
+
+      - uses: ./actions/build
+        with:
+          target: macm1
+          upload: true
+
+      - uses: ./actions/build
+        with:
+          target: macintel
+          upload: true
+
+      - uses: ./actions/merge
+        with:
+          upload: true
