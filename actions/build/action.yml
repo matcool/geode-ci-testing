@@ -175,7 +175,7 @@ runs:
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
-          -v bindings-repo-clone:/bindings \
+          -v "$GITHUB_WORKSPACE/bindings-repo-clone:/bindings" \
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
 
