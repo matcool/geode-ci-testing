@@ -122,6 +122,7 @@ runs:
         elif [ "${{ inputs.sdk }}" == "latest" ]; then
           TARGET_GEODE_VERSION=$(curl https://api.geode-sdk.org/v1/loader/versions/latest?prerelease=true | jq -r .payload.version)
           echo "Targetting Geode version $TARGET_GEODE_VERSION"
+          echo "image=geode:$PLATFORM-${TARGET_GEODE_VERSION/#v}" >> $GITHUB_OUTPUT
         elif [ "${{ inputs.sdk }}" == "given" ]; then
           MOD_JSON_PATH=$(find ${{ inputs.path }} -name "mod.json" -print | sort -r | head -n 1)
           TARGET_GEODE_VERSION=$(jq -r '.geode' $MOD_JSON_PATH)
