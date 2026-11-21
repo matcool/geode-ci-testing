@@ -58,6 +58,11 @@ inputs:
     required: false
     default: true
 
+  use-sccache:
+    description: Whether to use sccache for builds. Defaults to true
+    required: false
+    default: true
+
   export-debug:
     description: Whether to export debug files for builds (.pdb for Windows, .dbg for Android, .dSYM for MacOS). Defaults to false
     required: false
@@ -213,11 +218,15 @@ runs:
         if [ "${{ inputs.bundle-pdb }}" = "true" ] && [ "${{ inputs.target }}" = "win" ]; then
           BUNDLE_PDB="-DGEODE_BUNDLE_PDB=ON"
         fi
+        SCCACHE_ARGS=""
+        if [ "${{ inputs.use-sccache }}" = "true"]; then
+          SCCACHE_ARGS="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+        fi
 
         docker exec builder cmake \
           --preset ${{ steps.platform.outputs.preset }} --presets-file /docker/CMakePresets.json \
           $LTO $BUNDLE_PDB -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ inputs.configure-args }} \
-          -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          $SCCACHE_ARGS
 
     - name: Build
       shell: bash
