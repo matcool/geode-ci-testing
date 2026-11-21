@@ -219,7 +219,7 @@ runs:
           BUNDLE_PDB="-DGEODE_BUNDLE_PDB=ON"
         fi
         SCCACHE_ARGS=""
-        if [ "${{ inputs.use-sccache }}" = "true"]; then
+        if [ "${{ inputs.use-sccache }}" = "true" ]; then
           SCCACHE_ARGS="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
         fi
 
