@@ -53,10 +53,10 @@ inputs:
     description: Whether to save actions cache, can be useful to disable on PRs and such.
     default: true
 
-  # use-lto:
-  #   description: Whether to use LTO (Link Time Optimization) via the CMAKE_INTERPROCEDURAL_OPTIMIZATION flag, improving build size. Defaults to true
-  #   required: false
-  #   default: true
+  use-lto:
+    description: Whether to use LTO (Link Time Optimization) via the CMAKE_INTERPROCEDURAL_OPTIMIZATION flag, improving build size. Defaults to true
+    required: false
+    default: true
 
   export-debug:
     description: Whether to export debug files for builds (.pdb for Windows, .dbg for Android, .dSYM for MacOS). Defaults to false
@@ -86,7 +86,6 @@ runs:
       shell: bash
       run: |
         TARGET="${{ inputs.target }}"
-        LTO=""
         BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
@@ -94,7 +93,6 @@ runs:
         elif [ "$TARGET" = "win" ]; then
           PLATFORM="windows"
           BINARIES="windows"
-          LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         elif [ "$TARGET" = "ios" ]; then
           PLATFORM="ios"
           BINARIES="ios"
@@ -104,6 +102,14 @@ runs:
         else
           echo "Unknown target $TARGET"
           exit 1
+        fi
+
+        LTO=""
+        if [ "${{ inputs.use-lto }}" = "true" ]; then
+          # ios and macos dont have lto just yet
+          if [ "$PLATFORM" = "windows" ] || [ "$PLATFORM" = "android" ]; then
+            LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
+          fi
         fi
 
         PRESET="$TARGET"

@@ -16,7 +16,7 @@ jobs:
         # - target: mac
         - target: ios
         # - target: android32
-        # - target: android64
+        - target: android64
 
     name: Build ${{ matrix.config.target }}
     runs-on: ubuntu-latest
@@ -32,8 +32,6 @@ jobs:
           # export-debug: true
           # bundle-pdb: true
           # export-symbols: true
-          bindings: rhncg/bindings
-          bindings-ref: 6742eeaaf1a009789754968aea5f6672ca6d73a0
 
   merge:
     name: Merge
