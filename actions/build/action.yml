@@ -221,6 +221,8 @@ runs:
         SCCACHE_ARGS=""
         if [ "${{ inputs.use-sccache }}" = "true" ]; then
           SCCACHE_ARGS="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+        else
+          SCCACHE_ARGS="-DGEODE_DONT_USE_CCACHE=ON"
         fi
 
         docker exec builder cmake \
