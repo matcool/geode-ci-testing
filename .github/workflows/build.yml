@@ -30,6 +30,7 @@ jobs:
           # build-config: RelWithDebInfo
           upload: true
           sdk: latest
+          use-sccache: ${{ matrix.config.target == 'android64' && 'false' || 'true' }}
           # export-debug: true
           # bundle-pdb: true
           # export-symbols: true

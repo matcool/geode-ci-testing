@@ -236,6 +236,7 @@ runs:
 
     - name: Cache stats
       shell: bash
+      if: inputs.use-sccache == 'true'
       run: |
         du -sh ~/cache/scc ~/cache/cpm
         docker exec builder sccache -s
