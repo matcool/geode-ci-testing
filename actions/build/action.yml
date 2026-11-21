@@ -162,7 +162,7 @@ runs:
       with:
         repository: ${{ inputs.bindings }}
         ref: "${{ inputs.bindings-ref }}"
-        path: /tmp/bindings-repo
+        path: ~/bindings-repo
 
     - name: Prepare image
       shell: bash
@@ -175,7 +175,7 @@ runs:
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
-          -v /tmp/bindings-repo:/bindings \
+          -v ~/bindings-repo:/bindings \
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
 
