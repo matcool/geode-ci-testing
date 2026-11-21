@@ -29,6 +29,7 @@ jobs:
           target: ${{ matrix.config.target }}
           # build-config: RelWithDebInfo
           upload: true
+          sdk: latest
           # export-debug: true
           # bundle-pdb: true
           # export-symbols: true
