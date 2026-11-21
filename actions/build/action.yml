@@ -35,6 +35,16 @@ inputs:
     description: Automatically upload built files as geode-build-(platform).zip
     default: false
 
+  bindings:
+    description: What repository to use for bindings. Must be in the format "user/repo"
+    required: false
+    default: "geode-sdk/bindings"
+
+  bindings-ref:
+    description: Which commit/branch to use for bindings. Defaults to latest commit in main branch
+    required: false
+    default: ""
+
   use-action-cache:
     description: Whether to use actions cache for CPM and sccache
     default: true
@@ -77,7 +87,6 @@ runs:
       run: |
         TARGET="${{ inputs.target }}"
         LTO=""
-        LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         BUILD="build-$TARGET"
         if [ "$TARGET" = "android32" ] || [ "$TARGET" = "android64" ]; then
           PLATFORM="android"
@@ -85,6 +94,7 @@ runs:
         elif [ "$TARGET" = "win" ]; then
           PLATFORM="windows"
           BINARIES="windows"
+          LTO="-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
         elif [ "$TARGET" = "ios" ]; then
           PLATFORM="ios"
           BINARIES="ios"
@@ -147,6 +157,13 @@ runs:
         restore-keys: |
           sccache-${{ inputs.target }}-
 
+    - name: Download bindings repo
+      uses: actions/checkout@v7
+      with:
+        repository: ${{ inputs.bindings }}
+        ref: "${{ inputs.bindings-ref }}"
+        path: /tmp/bindings-repo
+
     - name: Prepare image
       shell: bash
       run: |
@@ -158,17 +175,9 @@ runs:
           -v ./:/src -w /src \
           -v ~/cache/cpm:/cpm-cache \
           -v ~/cache/scc:/opt/sccache/cache \
+          -v /tmp/bindings-repo:/bindings \
           "ghcr.io/geode-sdk/${{ steps.platform.outputs.image }}" \
           sleep infinity
-        # hack
-        docker exec builder curl -L https://prefire.prevter.me/f/1d0f57727aa94e829156f770d0afa632/download -o /docker/ios.toolchain.cmake
-        docker exec builder curl -L https://prefire.prevter.me/f/4faf264a21a648c6a0fecb375b2aa01d/download -o /docker/macos.toolchain.cmake
-
-    # temporary while pull-promise is broken
-    - name: fix bindings
-      shell: bash
-      if: ${{ inputs.sdk != 'nightly' }}
-      run: docker exec builder bash -c "cd /bindings && git pull"
 
     - name: Setup SDK manually
       shell: bash
@@ -176,7 +185,6 @@ runs:
       run: |
         docker exec -i builder bash -es <<'EOF'
         curl -Lf https://raw.githubusercontent.com/geode-sdk/geode-docker/refs/heads/main/docker/CMakePresets.json -o /docker/CMakePresets.json
-        git clone https://github.com/geode-sdk/bindings.git /bindings
         git clone https://github.com/geode-sdk/geode.git --branch nightly --depth 1 /opt/geode
         geode config set sdk-nightly true
         geode sdk install-binaries -p ${{ steps.platform.outputs.binaries }}
